@@ -292,71 +292,23 @@ if [ ${#APT_PACKAGES_NEEDED[@]} -gt 0 ]; then
 fi
 echo ""
 
-# ── 4. VS Code & Extensions ──────────────────────────────────────────────
-echo -e "${BOLD}[4/4] VS Code & Extensions${NC}"
-echo -e "      VS Code is your code editor. The WSL extension connects it to"
-echo -e "      your Ubuntu environment, and the C/C++ extension provides"
-echo -e "      IntelliSense and debugging support."
+# ── 4. VS Code CLI ────────────────────────────────────────────────────────
+echo -e "${BOLD}[4/4] VS Code 'code' command${NC}"
+echo -e "      The 'code' command lets you open VS Code from the terminal."
+echo -e "      It's also needed for managing extensions from the command line."
 echo ""
 
 CODE_CLI=""
 CODE_CLI=$(get_code_cli) || true
 
 if [ -n "$CODE_CLI" ]; then
-    pass "'code' command is available in WSL."
-    info "(This means VS Code + the WSL extension are working.)"
-    echo ""
-
-    # Check for required extensions
-    INSTALLED_EXTENSIONS=$("$CODE_CLI" --list-extensions 2>/dev/null || echo "")
-
-    REQUIRED_EXTENSIONS=(
-        "ms-vscode-remote.remote-wsl"    # WSL extension
-        "ms-vscode.cpptools"             # C/C++ by Microsoft
-    )
-    EXTENSION_NAMES=(
-        "WSL (ms-vscode-remote.remote-wsl) — connects VS Code to your Ubuntu environment"
-        "C/C++ (ms-vscode.cpptools) — provides IntelliSense and debugging for C++"
-    )
-
-    MISSING_EXTENSIONS=()
-
-    for i in "${!REQUIRED_EXTENSIONS[@]}"; do
-        ext_id="${REQUIRED_EXTENSIONS[$i]}"
-        ext_name="${EXTENSION_NAMES[$i]}"
-        if echo "$INSTALLED_EXTENSIONS" | grep -qi "^${ext_id}$"; then
-            pass "${ext_name}"
-        else
-            fail "${ext_name}"
-            MISSING_EXTENSIONS+=("$ext_id")
-            ISSUES_FOUND=$((ISSUES_FOUND + 1))
-        fi
-    done
-
-    if [ ${#MISSING_EXTENSIONS[@]} -gt 0 ]; then
-        echo ""
-        info "Fix: Install missing extensions with:"
-        for ext in "${MISSING_EXTENSIONS[@]}"; do
-            echo -e "      ${YELLOW}code --install-extension ${ext}${NC}"
-        done
-        echo ""
-        if ask_install "the missing VS Code extension(s)"; then
-            for ext in "${MISSING_EXTENSIONS[@]}"; do
-                info "Installing ${ext}..."
-                "$CODE_CLI" --install-extension "$ext" --force 2>/dev/null
-            done
-            FIXES_APPLIED=$((FIXES_APPLIED + 1))
-            pass "Extensions installed. You may need to reload VS Code."
-        fi
-    fi
+    pass "'code' command is available."
 else
-    fail "'code' command not found in WSL."
+    fail "'code' command not found, and VS Code was not detected."
     ISSUES_FOUND=$((ISSUES_FOUND + 1))
-    echo ""
-    info "This usually means one of:"
-    info "  1. VS Code is not installed on Windows."
-    info "  2. The WSL extension is not installed in VS Code."
-    info "  3. You need to restart your terminal after installing VS Code."
+    info "Make sure VS Code is installed on Windows."
+    info "Then open VS Code on Windows, install the 'WSL' extension,"
+    info "and restart your Ubuntu terminal."
     echo ""
     info "Fix:"
     info "  1. Install VS Code from: ${BLUE}https://code.visualstudio.com/${NC}"
