@@ -123,6 +123,19 @@ echo ""
 
 sleep 1
 
+
+# ── 0. Sanity check: are we actually on macOS? ─────────────────────────────
+if [ "$(uname -s)" != "Darwin" ]; then
+    warn "This script is for macOS, but you appear to be on $(uname -s)."
+    info "If you're on Windows/WSL, use the WSL verification script instead."
+    echo ""
+    read -r -p "    Continue anyway? [y/n] " yn
+    case "$yn" in
+        [Yy]* ) ;;
+        * ) echo ""; info "Exiting."; exit 0 ;;
+    esac
+fi
+
 # ── 1. Xcode Command Line Tools ───────────────────────────────────────────
 echo -e "${BOLD}[1/4] Xcode Command Line Tools (C++ compiler)${NC}"
 echo -e "      Provides g++/clang — the compiler that turns your C++ code"
