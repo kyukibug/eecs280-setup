@@ -17,7 +17,7 @@
 # Built with assistance from Claude Opus 4.6
 # ============================================================================
 
-set -euo pipefail
+set -uo pipefail
 
 # ---------------------------------------------------------------------------
 # Colors & formatting
@@ -156,7 +156,7 @@ else
     if ask_install "Xcode Command Line Tools"; then
         info "Opening the Xcode CLI Tools installer..."
         info "A dialog box will appear — click 'Install' and wait for it to finish."
-        info "After installation completes, please re-run this verification script."
+        info "After installation completes, please re-run this verification."
         xcode-select --install 2>/dev/null || true
         FIXES_APPLIED=$((FIXES_APPLIED + 1))
         echo ""
@@ -341,14 +341,15 @@ if [ "$ISSUES_FOUND" -eq 0 ]; then
 elif [ "$FIXES_APPLIED" -gt 0 ]; then
     echo ""
     echo -e "  ${YELLOW}${BOLD}⚙  Fixes were applied.${NC}"
-    echo -e "  Please ${BOLD}close and reopen your terminal${NC}, then run this script"
-    echo -e "  again to verify everything is working."
+    echo -e "  Please ${BOLD}close and reopen your terminal${NC}, then re-run this check:"
+    echo -e "  ${BOLD}Cmd+Shift+P → EECS 280: Verify Setup${NC}"
     echo -e "     ${BLUE}${BOLD}ദ്ദി(• ˕ •マ.ᐟ${NC}"
     echo ""
 else
     echo ""
     echo -e "  ${RED}${BOLD}✘  ${ISSUES_FOUND} issue(s) found.${NC}"
-    echo -e "  Follow the instructions above to fix them, then re-run this script."
+    echo -e "  Follow the instructions above to fix them, then re-run:"
+    echo -e "  ${BOLD}Cmd+Shift+P → EECS 280: Verify Setup${NC}"
     echo -e "     ${BLUE}${BOLD}/ᐠ ╥ ˕ ╥マ${NC}"
     echo ""
 fi
