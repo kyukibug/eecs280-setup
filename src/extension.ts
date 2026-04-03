@@ -136,19 +136,19 @@ export function activate(context: vscode.ExtensionContext): void {
 
       switch (platform) {
         case "macos": {
-          const scriptPath = getScriptPath(context, "verify-macos.sh");
+          const scriptPath = getScriptPath(context, "verify_macos.sh");
           runScriptInTerminal(scriptPath);
           break;
         }
 
         case "wsl": {
-          const scriptPath = getScriptPath(context, "verify-wsl.sh");
+          const scriptPath = getScriptPath(context, "verify_wsl.sh");
           runScriptInTerminal(scriptPath);
           break;
         }
 
         case "linux": {
-          const scriptPath = getScriptPath(context, "verify-linux.sh");
+          const scriptPath = getScriptPath(context, "verify_linux.sh");
           runScriptInTerminal(scriptPath);
           break;
         }
