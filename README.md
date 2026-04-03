@@ -2,21 +2,6 @@
 
 One-click environment setup and verification for [EECS 280](https://eecs280.org) at the University of Michigan.
 
-## What this extension does
-
-**On install, it automatically:**
-- Installs the required C/C++ extension
-- Installs the CodeLLDB debugger extension
-- Installs the WSL extension (for Windows students)
-- Disables VS Code AI features (academic integrity)
-- Configures the debugger to hide disassembly
-
-**On command, it verifies your environment:**
-- Detects your OS (macOS, WSL, or Linux) automatically
-- Checks for required developer tools (compilers, CLI utilities)
-- Offers to install anything that's missing
-- Shows a clear pass/fail summary
-
 ## Usage
 
 1. Install this extension from the VS Code Marketplace.
@@ -45,15 +30,6 @@ If the script finds issues, it will explain each one and offer to fix it. After 
 - CLI tools: `tree`, `wget`, `git`, `rsync`, `ssh`, `python3`
 - VS Code `code` command
 
-## Settings applied
-
-This extension sets the following VS Code defaults. You can override any of these in your own settings:
-
-| Setting | Value | Why |
-|---------|-------|-----|
-| `chat.disableAIFeatures` | `true` | Academic integrity — disables and hides all AI features |
-| `lldb.showDisassembly` | `"never"` | Prevents confusing disassembly view during debugging |
-
 ## Troubleshooting
 
 **Windows: "EECS 280 requires WSL"**
@@ -67,7 +43,7 @@ Open VS Code, press `Cmd+Shift+P` (or `Ctrl+Shift+P`), type "Shell Command: Inst
 
 ## For course staff
 
-This extension is maintained at [github.com/kyukibug/eecs280-setup](https://github.com/kyukibug/eecs280-setup). See `PUBLISHING.md` for instructions on updating and publishing new versions.
+This extension is maintained at [github.com/kyukibug/eecs280-setup](https://github.com/kyukibug/eecs280-setup).
 
 ---
 
