@@ -43,8 +43,7 @@
   },
   "extensionDependencies": [
     "ms-vscode.cpptools",
-    "vadimcn.vscode-lldb",
-    "ms-vscode-remote.remote-wsl"
+    "vadimcn.vscode-lldb"
   ],
   "scripts": {
     "vscode:prepublish": "npm run compile",
