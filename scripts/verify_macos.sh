@@ -341,7 +341,7 @@ if [ "$ISSUES_FOUND" -eq 0 ]; then
 elif [ "$FIXES_APPLIED" -gt 0 ]; then
     echo ""
     echo -e "  ${YELLOW}${BOLD}⚙  Fixes were applied.${NC}"
-    echo -e "  Please ${BOLD}close and reopen your terminal${NC}, then re-run this check:"
+    echo -e "  Re-run this check to verify everything is working:"
     echo -e "  ${BOLD}Cmd+Shift+P → EECS 280: Verify Setup${NC}"
     echo -e "     ${BLUE}${BOLD}ദ്ദി(• ˕ •マ.ᐟ${NC}"
     echo ""
