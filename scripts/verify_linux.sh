@@ -79,12 +79,30 @@ echo ""
 
 sleep 1
 
-# Show distro info
-if command -v lsb_release &>/dev/null; then
+# Check distro and version
+UBUNTU_VERSION=$(lsb_release -rs 2>/dev/null || echo "")
+if [ -n "$UBUNTU_VERSION" ]; then
+    DISTRO=$(lsb_release -ds 2>/dev/null || echo "Unknown")
+    MAJOR_VERSION=$(echo "$UBUNTU_VERSION" | cut -d. -f1)
+    if [ "$MAJOR_VERSION" -ge 24 ]; then
+        pass "${DISTRO} (supported)"
+    elif [ "$MAJOR_VERSION" -ge 22 ]; then
+        warn "${DISTRO} — works, but consider upgrading to 24.04."
+        info "The course tutorial uses Ubuntu 24.04."
+    else
+        fail "${DISTRO} — this version is too old and may cause issues."
+        ISSUES_FOUND=$((ISSUES_FOUND + 1))
+        info "Fix: Upgrade to Ubuntu 24.04 or later."
+    fi
+elif command -v lsb_release &>/dev/null; then
     DISTRO=$(lsb_release -ds 2>/dev/null || echo "Unknown")
     info "Distribution: ${DISTRO}"
-    echo ""
+    warn "Could not parse version number. Make sure you're on Ubuntu 22.04+."
+else
+    warn "Could not detect Linux distribution."
+    info "This script is designed for Ubuntu. Some checks may not apply."
 fi
+echo ""
 
 # ── 1. C++ Compiler & Debugger ────────────────────────────────────────────
 echo -e "${BOLD}[1/3] C++ Compiler & Debugger${NC}"
@@ -255,7 +273,7 @@ if [ "$ISSUES_FOUND" -eq 0 ]; then
 elif [ "$FIXES_APPLIED" -gt 0 ]; then
     echo ""
     echo -e "  ${YELLOW}${BOLD}⚙  Fixes were applied.${NC}"
-    echo -e "  Please ${BOLD}close and reopen your terminal${NC}, then re-run this check:"
+    echo -e "  Re-run this check to verify everything is working:"
     echo -e "  ${BOLD}Ctrl+Shift+P → EECS 280: Verify Setup${NC}"
     echo -e "     ${BLUE}${BOLD}ദ്ദി(• ˕ •マ.ᐟ${NC}"
     echo ""
