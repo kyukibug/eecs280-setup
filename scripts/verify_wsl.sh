@@ -100,7 +100,7 @@ if ! grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
     echo ""
 fi
 
-# ── 1. WSL Version ───────────────────────────────────────────────────────
+# ── 1. WSL Environment ───────────────────────────────────────────────────
 echo -e "${BOLD}[1/4] WSL Environment${NC}"
 echo -e "      WSL (Windows Subsystem for Linux) runs an Ubuntu Linux"
 echo -e "      environment on your Windows machine for C++ development."
@@ -121,36 +121,65 @@ else
     pass "Logged in as user '${CURRENT_USER}' (not root)."
 fi
 
-# Check WSL version (should be 2)
-WSL_VERSION=""
-if [ -f /proc/version ]; then
-    # Try to detect WSL version from environment
-    if [ -n "${WSL_DISTRO_NAME:-}" ]; then
-        # We're in WSL — try to get version via interop
-        WSL_VERSION=$(wsl.exe -l -v 2>/dev/null | grep -i "${WSL_DISTRO_NAME}" | awk '{print $NF}' | tr -d '[:space:]' 2>/dev/null || echo "")
-    fi
-fi
-
-if [ "$WSL_VERSION" = "2" ]; then
+# Check WSL version via kernel string (reliable, no Windows interop needed)
+# WSL 2 kernels contain "WSL2" or "microsoft-standard-WSL2" in uname -r.
+# WSL 1 kernels contain "microsoft" but not "WSL2".
+KERNEL_INFO=$(uname -r)
+if echo "$KERNEL_INFO" | grep -qi "WSL2\|microsoft-standard-WSL2"; then
     pass "WSL version 2 detected."
-elif [ "$WSL_VERSION" = "1" ]; then
+    info "Kernel: ${KERNEL_INFO}"
+elif echo "$KERNEL_INFO" | grep -qi "microsoft"; then
+    # Has "microsoft" but not "WSL2" → likely WSL 1
     fail "WSL version 1 detected — you need version 2."
     ISSUES_FOUND=$((ISSUES_FOUND + 1))
     info "Fix: Open PowerShell as administrator and run:"
     echo -e "      ${YELLOW}wsl --set-version Ubuntu-24.04 2${NC}"
     echo ""
 else
-    # Couldn't determine version, but we're running — probably fine
-    warn "Could not determine WSL version (this is usually fine)."
+    warn "Could not determine WSL version from kernel string."
+    info "Kernel: ${KERNEL_INFO}"
     info "To verify, open PowerShell and run:"
     echo -e "      ${YELLOW}wsl -l -v${NC}"
     info "Make sure the VERSION column shows '2'."
 fi
 
 # Check Ubuntu version
-if command -v lsb_release &>/dev/null; then
+UBUNTU_VERSION=$(lsb_release -rs 2>/dev/null || echo "")
+if [ -n "$UBUNTU_VERSION" ]; then
     DISTRO=$(lsb_release -ds 2>/dev/null || echo "Unknown")
-    info "Distribution: ${DISTRO}"
+    MAJOR_VERSION=$(echo "$UBUNTU_VERSION" | cut -d. -f1)
+    if [ "$MAJOR_VERSION" -ge 24 ]; then
+        pass "${DISTRO} (supported)"
+    elif [ "$MAJOR_VERSION" -ge 22 ]; then
+        warn "${DISTRO} — works, but consider upgrading to 24.04."
+        info "The course tutorial uses Ubuntu 24.04."
+        info "To upgrade, open PowerShell and run:"
+        echo -e "      ${YELLOW}wsl --install -d Ubuntu-24.04${NC}"
+    else
+        fail "${DISTRO} — this version is too old and may cause issues."
+        ISSUES_FOUND=$((ISSUES_FOUND + 1))
+        info "Fix: Install Ubuntu 24.04. Open PowerShell and run:"
+        echo -e "      ${YELLOW}wsl --install -d Ubuntu-24.04${NC}"
+    fi
+else
+    warn "Could not detect Ubuntu version."
+    info "Make sure you're running Ubuntu (not another Linux distribution)."
+fi
+
+# Check for multiple Ubuntu installations (common source of confusion)
+DISTRO_LIST=$(wsl.exe -l -q 2>/dev/null | tr -d '\r' | tr -d '\0' | grep -i "ubuntu" || echo "")
+DISTRO_COUNT=$(echo "$DISTRO_LIST" | grep -c "." 2>/dev/null || echo "0")
+if [ "$DISTRO_COUNT" -gt 1 ]; then
+    echo ""
+    warn "Multiple Ubuntu installations detected!"
+    echo "$DISTRO_LIST" | while read -r line; do
+        [ -n "$line" ] && info "  • $line"
+    done
+    info "You're currently in: ${WSL_DISTRO_NAME:-unknown}"
+    info "Having multiple installs can cause confusion — you might"
+    info "install tools in one but run VS Code in another."
+    info "Consider removing extras in PowerShell:"
+    echo -e "      ${YELLOW}wsl --unregister <name>${NC}"
 fi
 echo ""
 
@@ -314,7 +343,7 @@ else
     info "  1. Install VS Code from: ${BLUE}https://code.visualstudio.com/${NC}"
     info "  2. Open VS Code on Windows, install the 'WSL' extension."
     info "  3. Close and reopen your Ubuntu terminal."
-    info "  4. Re-run this script."
+    info "  4. Re-run this check."
 fi
 echo ""
 
@@ -328,14 +357,15 @@ if [ "$ISSUES_FOUND" -eq 0 ]; then
 elif [ "$FIXES_APPLIED" -gt 0 ]; then
     echo ""
     echo -e "  ${YELLOW}${BOLD}⚙  Fixes were applied.${NC}"
-    echo -e "  Please ${BOLD}close and reopen your terminal${NC}, then run this script"
-    echo -e "  again to verify everything is working."
+    echo -e "  Re-run this check to verify everything is working:"
+    echo -e "  ${BOLD}Ctrl+Shift+P → EECS 280: Verify Setup${NC}"
     echo -e "     ${BLUE}${BOLD}ദ്ദി(• ˕ •マ.ᐟ${NC}"
     echo ""
 else
     echo ""
     echo -e "  ${RED}${BOLD}✘  ${ISSUES_FOUND} issue(s) found.${NC}"
-    echo -e "  Follow the instructions above to fix them, then re-run this script."
+    echo -e "  Follow the instructions above to fix them, then re-run:"
+    echo -e "  ${BOLD}Ctrl+Shift+P → EECS 280: Verify Setup${NC}"
     echo -e "     ${BLUE}${BOLD}/ᐠ ╥ ˕ ╥マ${NC}"
     echo ""
 fi
