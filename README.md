@@ -2,14 +2,29 @@
 
 One-click environment setup and verification for [EECS 280](https://eecs280.org) at the University of Michigan.
 
+## What this extension does
+
+When you install this extension, it automatically:
+
+- **Installs required VS Code extensions:** [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) for C++ editing and debugging. On Windows, the [WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) extension is also installed. You may see these appear in your Extensions panel — that's expected.
+- **Applies course-default settings:** disables AI/Copilot features and configures LLDB for the course's debugging workflow.
+- **Runs verification automatically:** on first install and after extension updates, a terminal opens and checks that your development environment is set up correctly. The script will explain any issues it finds and offer to fix them.
+
+It also provides an **EECS 280: Verify Setup** command you can run manually any time you want to re-check your environment.
+
 ## Usage
 
-1. Install this extension from the VS Code Marketplace.
-2. Open the Command Palette: `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux).
-3. Type **EECS 280: Verify Setup** and press Enter.
-4. Follow any prompts in the terminal.
+Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=kyukibug.eecs280-setup). Verification runs automatically the first time the extension loads (and again after updates) — a terminal will open and check your environment. Follow any prompts; if the script finds issues, it will explain each one and offer to fix it.
 
-If the script finds issues, it will explain each one and offer to fix it. After fixing, re-run the command to confirm everything passes.
+### Re-running verification manually
+
+To re-check your environment later:
+
+1. Open the Command Palette:
+   - macOS: `Cmd+Shift+P`
+   - Windows/Linux: `Ctrl+Shift+P`
+2. Type **EECS 280: Verify Setup** and press Enter.
+3. Follow any prompts in the terminal.
 
 ## What gets checked
 
@@ -44,6 +59,12 @@ Open VS Code, press `Cmd+Shift+P` (or `Ctrl+Shift+P`), type "Shell Command: Inst
 ## For course staff
 
 This extension is maintained at [github.com/kyukibug/eecs280-setup](https://github.com/kyukibug/eecs280-setup).
+
+Related documentation that references this extension (update alongside changes here):
+
+- [EECS 280 tutorials repo](https://github.com/eecs280staff/tutorials/)
+- [macOS VS Code setup guide](https://github.com/eecs280staff/tutorials/blob/main/docs/setup_vscode_macos.md)
+- [WSL VS Code setup guide](https://github.com/eecs280staff/tutorials/blob/main/docs/setup_vscode_wsl.md)
 
 ---
 
