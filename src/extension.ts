@@ -44,6 +44,10 @@ import { spawn } from "child_process";
  *  updates (stored version differs from current). */
 const LAST_VERIFY_VERSION_KEY = "lastVerifyVersion";
 
+/** workspaceState key tracking whether the student dismissed the "not
+ *  connected to WSL" notification permanently for this folder. */
+const WSL_NOTIFICATION_DISMISSED_KEY = "wslNotificationDismissed";
+
 /** How often to re-run the silent verification check, in milliseconds.
  *  10 minutes balances staying current with not spawning bash processes
  *  too aggressively. */
@@ -81,6 +85,74 @@ function detectPlatform(): "macos" | "wsl" | "linux" | "windows" {
 
   // win32 — student opened VS Code on Windows without connecting to WSL
   return "windows";
+}
+
+/**
+ * Detects whether the student is running Windows VS Code with WSL installed
+ * but NOT connected to it.
+ *
+ * This is a silent failure mode: the student set up WSL, installed the
+ * toolchain inside it, but launched VS Code as a regular Windows app. From
+ * VS Code's perspective everything looks like Windows-native — no compiler,
+ * no debugger, no bash. The student gets confusing errors and has no idea
+ * why.
+ *
+ * The fix is one click: VS Code's "Reopen Folder in WSL" command. We just
+ * need to detect the state and surface the action.
+ *
+ * Detection criteria (all must be true):
+ *   - process.platform === "win32" (running on Windows side, not Linux)
+ *   - vscode.env.remoteName !== "wsl" (not connected to WSL remote — this
+ *     is how VS Code itself reports the connection state)
+ *   - `wsl.exe -l -q` returns at least one distro (WSL is installed and has
+ *     at least one distro registered, so the fix is actually viable)
+ *
+ * Returns a Promise so we can await the wsl.exe spawn without blocking
+ * activation.
+ */
+function isWindowsWithUnusedWsl(): Promise<boolean> {
+  if (process.platform !== "win32") {
+    return Promise.resolve(false);
+  }
+  if (vscode.env.remoteName === "wsl") {
+    return Promise.resolve(false);
+  }
+
+  // Spawn `wsl.exe -l -q` to check if any distros are installed.
+  // The -q flag gives us just the distro names, no headers.
+  // Output is UTF-16 LE encoded by default, so we collect as Buffer and
+  // decode explicitly rather than relying on stream default encoding.
+  return new Promise((resolve) => {
+    const child = spawn("wsl.exe", ["-l", "-q"], { stdio: ["ignore", "pipe", "ignore"] });
+    const chunks: Buffer[] = [];
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    child.on("exit", (code) => {
+      if (code !== 0) {
+        // wsl.exe exited with an error — most likely "no distros installed"
+        // or WSL feature not enabled. Either way, this isn't the state we
+        // want to act on (we want WSL installed AND a distro present).
+        resolve(false);
+        return;
+      }
+
+      // Decode UTF-16 LE, strip nulls and CR, check for any non-empty line.
+      const decoded = Buffer.concat(chunks)
+        .toString("utf16le")
+        .replace(/\0/g, "")
+        .replace(/\r/g, "");
+      const hasDistro = decoded.split("\n").some((line) => line.trim().length > 0);
+      resolve(hasDistro);
+    });
+
+    child.on("error", () => {
+      // wsl.exe doesn't exist on PATH at all — WSL feature not installed.
+      resolve(false);
+    });
+  });
 }
 
 /**
@@ -226,6 +298,64 @@ function runVerificationForPlatform(
 }
 
 /**
+ * Sets the status bar item to the "Not in WSL" warning state.
+ *
+ * Used when we detect Windows VS Code with WSL installed but not connected.
+ * The verify scripts can't run in this state (no bash), so we override the
+ * normal pass/fail display with a more actionable warning.
+ *
+ * Clicking the status bar in this state triggers a folder reopen in WSL.
+ */
+function setStatusBarToWslWarning(statusBarItem: vscode.StatusBarItem): void {
+  statusBarItem.text = "$(warning) EECS 280: Not in WSL";
+  statusBarItem.backgroundColor = new vscode.ThemeColor(
+    "statusBarItem.warningBackground"
+  );
+  statusBarItem.tooltip =
+    "VS Code is running on Windows, not connected to WSL. Click to reopen this folder in WSL.";
+  statusBarItem.command = "eecs280.reopenInWsl";
+}
+
+/**
+ * Shows the "not connected to WSL" notification with action buttons.
+ *
+ * Respects the per-workspace dismissal flag — if the student has clicked
+ * "Don't show again" in this folder before, this is a no-op.
+ */
+async function maybeShowWslNotification(
+  context: vscode.ExtensionContext
+): Promise<void> {
+  const dismissed = context.workspaceState.get<boolean>(
+    WSL_NOTIFICATION_DISMISSED_KEY,
+    false
+  );
+  if (dismissed) {
+    return;
+  }
+
+  const reopenLabel = "Reopen in WSL";
+  const dontShowLabel = "Don't show again";
+
+  const selection = await vscode.window.showWarningMessage(
+    "EECS 280: VS Code is running on Windows, but EECS 280 work should be done inside WSL. " +
+      "Reopen this folder in WSL to use the toolchain you've installed.",
+    reopenLabel,
+    dontShowLabel
+  );
+
+  if (selection === reopenLabel) {
+    // remote-wsl.reopenInWSL is the command that powers the blue "><"
+    // button's "Reopen Folder in WSL" action. It reopens the current
+    // folder in a WSL-connected window.
+    await vscode.commands.executeCommand("remote-wsl.reopenInWSL");
+  } else if (selection === dontShowLabel) {
+    await context.workspaceState.update(WSL_NOTIFICATION_DISMISSED_KEY, true);
+  }
+  // Closing the X (selection === undefined) is intentionally just a session
+  // dismissal — the notification will reappear on next activation.
+}
+
+/**
  * Updates the status bar item by silently running the verify script and
  * inspecting its exit code. Sets a green check on pass, a red error on
  * fail, and a yellow warning on Windows-without-WSL (where there's no
@@ -246,6 +376,7 @@ async function updateStatusBar(
     );
     statusBarItem.tooltip =
       "EECS 280 requires WSL. Click for setup instructions.";
+    statusBarItem.command = "eecs280.verifySetup";
     return;
   }
 
@@ -262,6 +393,7 @@ async function updateStatusBar(
   statusBarItem.text = "$(sync~spin) EECS 280: Verifying...";
   statusBarItem.backgroundColor = undefined;
   statusBarItem.tooltip = "Checking your EECS 280 environment...";
+  statusBarItem.command = "eecs280.verifySetup";
 
   const scriptPath = getScriptPath(context, scriptName);
   const passed = await runScriptSilently(scriptPath);
@@ -308,9 +440,20 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   context.subscriptions.push(verifyCommand);
 
+  // Register the "Reopen in WSL" command, used by both the WSL warning
+  // notification action button and the status bar in the not-in-WSL state.
+  // We wrap the underlying remote-wsl.reopenInWSL command so we have a
+  // single, stable command id to bind to the status bar.
+  const reopenInWslCommand = vscode.commands.registerCommand(
+    "eecs280.reopenInWsl",
+    () => vscode.commands.executeCommand("remote-wsl.reopenInWSL")
+  );
+  context.subscriptions.push(reopenInWslCommand);
+
   // Create the persistent status bar item.
   // Left-aligned with priority 100 — higher priority means further left.
-  // Clicking it re-runs the visible verification command.
+  // Clicking it re-runs the visible verification command (the command may
+  // be reassigned to "reopen in WSL" later if we detect that state).
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
     100
@@ -320,6 +463,34 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBarItem.tooltip = "Checking your EECS 280 environment...";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
+
+  // Detect Windows-with-unused-WSL state BEFORE doing anything else.
+  //
+  // This is a state where the student has WSL installed but launched VS Code
+  // as a regular Windows app instead of connecting to WSL. The verify scripts
+  // can't run (no bash), and the auto-run-on-update logic would no-op
+  // unhelpfully. Instead, we want to:
+  //   - Show a notification offering to reopen in WSL
+  //   - Set the status bar to a "Not in WSL" warning
+  //   - Skip both the silent verify and the visible auto-run
+  //
+  // We kick off the detection asynchronously and let the rest of activation
+  // proceed assuming the normal flow. If detection comes back true, we
+  // override the status bar and short-circuit. If detection comes back false,
+  // we fall through to the normal silent-verify scheduling below.
+  //
+  // The flag below lets us cancel the scheduled silent verify if the WSL
+  // check resolves true after the timer was already set.
+  let normalFlowCancelled = false;
+
+  void isWindowsWithUnusedWsl().then((isUnusedWsl) => {
+    if (!isUnusedWsl) {
+      return;
+    }
+    normalFlowCancelled = true;
+    setStatusBarToWslWarning(statusBarItem);
+    void maybeShowWslNotification(context);
+  });
 
   // Auto-run verification on first install and after extension updates.
   //
@@ -331,6 +502,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // We update globalState AFTER launching the terminal so that if anything
   // throws during launch, the next activation will retry rather than silently
   // marking this version as done.
+  //
+  // Note: on Windows-with-unused-WSL, runVerificationForPlatform with
+  // isAutoRun=true is already a no-op (the platform is "windows" and auto-run
+  // suppresses the warning), so we don't need to gate this on the WSL check.
   const currentVersion = context.extension.packageJSON.version;
   const lastRunVersion = context.globalState.get<string>(
     LAST_VERIFY_VERSION_KEY
@@ -361,14 +536,25 @@ export function activate(context: vscode.ExtensionContext): void {
   // work is negligible. The benefit is the status bar resolves to a real
   // pass/fail state immediately rather than sitting in a placeholder until
   // the periodic interval fires.
+  //
+  // If the WSL detection resolved true in the meantime, we skip the silent
+  // verify entirely — running bash on Windows-without-connection would just
+  // fail and overwrite the actionable "Not in WSL" warning with a generic
+  // "Setup Incomplete".
   setTimeout(() => {
+    if (normalFlowCancelled) {
+      return;
+    }
     void updateStatusBar(context, statusBarItem);
   }, 3000);
-  
+
   // Re-run the silent check periodically so a student who ignored a failed
   // verification still sees the red status bar update / clear when they fix
   // (or don't fix) their environment.
   const intervalHandle = setInterval(() => {
+    if (normalFlowCancelled) {
+      return;
+    }
     void updateStatusBar(context, statusBarItem);
   }, SILENT_CHECK_INTERVAL_MS);
   context.subscriptions.push({
