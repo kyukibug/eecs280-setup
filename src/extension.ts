@@ -354,20 +354,17 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Kick off the silent background check that drives the status bar.
   //
-  // On first install / update we skip the immediate silent check — the
-  // visible terminal launched above is already going to tell the student
-  // everything they need to know, and we don't want two bash processes
-  // racing to verify the same machine. The periodic interval picks up
-  // SILENT_CHECK_INTERVAL_MS later.
-  //
-  // On every other activation we wait 3 seconds before the first check so
-  // VS Code has fully settled (extensions loaded, terminals available).
-  if (!isFirstRunOrUpdate) {
-    setTimeout(() => {
-      void updateStatusBar(context, statusBarItem);
-    }, 3000);
-  }
-
+  // We wait 3 seconds before the first check so VS Code has fully settled
+  // (extensions loaded, terminals available). On first install / update,
+  // this runs concurrently with the visible auto-run terminal — that's
+  // fine, the verify scripts only do read-only checks and the duplicated
+  // work is negligible. The benefit is the status bar resolves to a real
+  // pass/fail state immediately rather than sitting in a placeholder until
+  // the periodic interval fires.
+  setTimeout(() => {
+    void updateStatusBar(context, statusBarItem);
+  }, 3000);
+  
   // Re-run the silent check periodically so a student who ignored a failed
   // verification still sees the red status bar update / clear when they fix
   // (or don't fix) their environment.
