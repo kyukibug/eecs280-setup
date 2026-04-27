@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import { spawn } from "child_process";
 
 // =============================================================================
 // EECS 280 Setup Extension — Main Entry Point
@@ -15,6 +16,9 @@ import * as fs from "fs";
 //      student's OS and runs the appropriate verification script in the
 //      integrated terminal. The verification also runs automatically on
 //      first install and after extension updates.
+//   4. Maintains a persistent status bar item showing setup pass/fail at a
+//      glance. Re-checks silently in the background every few minutes so
+//      students who ignore a failed verification still see they aren't OK.
 //
 // Architecture:
 //   - The bash scripts in scripts/ do ALL the heavy lifting (checking tools,
@@ -23,6 +27,9 @@ import * as fs from "fs";
 //   - Scripts are bundled with the extension (not fetched remotely), so they
 //     work offline after install. To update scripts, bump the extension version
 //     and republish.
+//   - The verify scripts exit with code 1 when ISSUES_FOUND > 0 (and 0 when
+//     everything passes), which is how the silent background check determines
+//     pass/fail.
 //
 // Maintainer notes:
 //   - To add a new check, edit the bash script(s) in scripts/.
@@ -36,6 +43,11 @@ import * as fs from "fs";
  *  auto-run of verification. Used to detect first install (undefined) and
  *  updates (stored version differs from current). */
 const LAST_VERIFY_VERSION_KEY = "lastVerifyVersion";
+
+/** How often to re-run the silent verification check, in milliseconds.
+ *  10 minutes balances staying current with not spawning bash processes
+ *  too aggressively. */
+const SILENT_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
 /**
  * Detects the current platform from VS Code's perspective.
@@ -86,6 +98,25 @@ function getScriptPath(
 }
 
 /**
+ * Maps a platform to its verify script filename. Returns null for platforms
+ * that don't have a script (windows-without-WSL).
+ */
+function getScriptNameForPlatform(
+  platform: "macos" | "wsl" | "linux" | "windows"
+): string | null {
+  switch (platform) {
+    case "macos":
+      return "verify_macos.sh";
+    case "wsl":
+      return "verify_wsl.sh";
+    case "linux":
+      return "verify_linux.sh";
+    case "windows":
+      return null;
+  }
+}
+
+/**
  * Runs a bash script in the VS Code integrated terminal.
  *
  * Creates a new terminal named "EECS 280 Setup", sends the bash command,
@@ -117,6 +148,34 @@ function runScriptInTerminal(scriptPath: string): void {
 }
 
 /**
+ * Runs a bash script silently in the background and resolves to true if
+ * it exited cleanly (code 0), false otherwise.
+ *
+ * Used by the status bar to passively check setup status without showing
+ * a terminal. The verify scripts exit 1 when ISSUES_FOUND > 0, so the
+ * exit code is a reliable pass/fail signal.
+ *
+ * stdio is set to "ignore" so the script's interactive [y/n] prompts get
+ * an immediate EOF on stdin. The scripts don't use `set -e`, so they
+ * continue past the failed reads and still produce a meaningful exit code.
+ */
+function runScriptSilently(scriptPath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const child = spawn("bash", ["-l", scriptPath], {
+      stdio: "ignore",
+    });
+    child.on("exit", (code) => {
+      resolve(code === 0);
+    });
+    child.on("error", () => {
+      // Couldn't spawn bash, or some other process error. Treat as fail
+      // so the status bar shows something is wrong rather than falsely OK.
+      resolve(false);
+    });
+  });
+}
+
+/**
  * Runs the verification script appropriate for the current platform.
  *
  * Shared between the manual "EECS 280: Verify Setup" command and the
@@ -135,49 +194,90 @@ function runVerificationForPlatform(
   isAutoRun: boolean
 ): void {
   const platform = detectPlatform();
+  const scriptName = getScriptNameForPlatform(platform);
 
-  switch (platform) {
-    case "macos": {
-      runScriptInTerminal(getScriptPath(context, "verify_macos.sh"));
-      break;
-    }
+  if (scriptName !== null) {
+    runScriptInTerminal(getScriptPath(context, scriptName));
+    return;
+  }
 
-    case "wsl": {
-      runScriptInTerminal(getScriptPath(context, "verify_wsl.sh"));
-      break;
-    }
-
-    case "linux": {
-      runScriptInTerminal(getScriptPath(context, "verify_linux.sh"));
-      break;
-    }
-
-    case "windows": {
-      if (isAutoRun) {
-        // Don't surface an unprompted warning on auto-run.
-        return;
+  // Windows-without-WSL case
+  if (isAutoRun) {
+    // Don't surface an unprompted warning on auto-run.
+    return;
+  }
+  vscode.window
+    .showWarningMessage(
+      "EECS 280 requires WSL (Windows Subsystem for Linux). " +
+        "Please install WSL and Ubuntu, then connect VS Code to WSL " +
+        'by clicking the blue "><" icon in the bottom-left corner ' +
+        'and selecting "Connect to WSL".',
+      "Open WSL Setup Guide"
+    )
+    .then((selection) => {
+      if (selection === "Open WSL Setup Guide") {
+        vscode.env.openExternal(
+          vscode.Uri.parse(
+            "https://eecs280staff.github.io/tutorials/setup_wsl.html"
+          )
+        );
       }
-      // Student is on Windows but hasn't connected VS Code to WSL.
-      // Show a helpful message explaining what to do.
-      vscode.window
-        .showWarningMessage(
-          "EECS 280 requires WSL (Windows Subsystem for Linux). " +
-            "Please install WSL and Ubuntu, then connect VS Code to WSL " +
-            'by clicking the blue "><" icon in the bottom-left corner ' +
-            'and selecting "Connect to WSL".',
-          "Open WSL Setup Guide"
-        )
-        .then((selection) => {
-          if (selection === "Open WSL Setup Guide") {
-            vscode.env.openExternal(
-              vscode.Uri.parse(
-                "https://eecs280staff.github.io/tutorials/setup_wsl.html"
-              )
-            );
-          }
-        });
-      break;
-    }
+    });
+}
+
+/**
+ * Updates the status bar item by silently running the verify script and
+ * inspecting its exit code. Sets a green check on pass, a red error on
+ * fail, and a yellow warning on Windows-without-WSL (where there's no
+ * script to run).
+ *
+ * Idempotent and safe to call repeatedly — that's the whole point.
+ */
+async function updateStatusBar(
+  context: vscode.ExtensionContext,
+  statusBarItem: vscode.StatusBarItem
+): Promise<void> {
+  const platform = detectPlatform();
+
+  if (platform === "windows") {
+    statusBarItem.text = "$(warning) EECS 280: WSL Required";
+    statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.warningBackground"
+    );
+    statusBarItem.tooltip =
+      "EECS 280 requires WSL. Click for setup instructions.";
+    return;
+  }
+
+  const scriptName = getScriptNameForPlatform(platform);
+  if (scriptName === null) {
+    // Defensive: shouldn't happen given the platform check above, but
+    // satisfies the type checker and avoids a runtime crash.
+    return;
+  }
+
+  // Show a brief "verifying" state so the student knows something is
+  // happening if they happen to be looking. The spinner stops the moment
+  // the promise below resolves.
+  statusBarItem.text = "$(sync~spin) EECS 280: Verifying...";
+  statusBarItem.backgroundColor = undefined;
+  statusBarItem.tooltip = "Checking your EECS 280 environment...";
+
+  const scriptPath = getScriptPath(context, scriptName);
+  const passed = await runScriptSilently(scriptPath);
+
+  if (passed) {
+    statusBarItem.text = "$(check) EECS 280: Setup OK";
+    statusBarItem.backgroundColor = undefined;
+    statusBarItem.tooltip =
+      "Your EECS 280 environment looks good. Click to re-verify.";
+  } else {
+    statusBarItem.text = "$(error) EECS 280: Setup Incomplete";
+    statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.errorBackground"
+    );
+    statusBarItem.tooltip =
+      "Your EECS 280 environment has issues. Click to see what's missing.";
   }
 }
 
@@ -206,8 +306,20 @@ export function activate(context: vscode.ExtensionContext): void {
       runVerificationForPlatform(context, false);
     }
   );
-
   context.subscriptions.push(verifyCommand);
+
+  // Create the persistent status bar item.
+  // Left-aligned with priority 100 — higher priority means further left.
+  // Clicking it re-runs the visible verification command.
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100
+  );
+  statusBarItem.command = "eecs280.verifySetup";
+  statusBarItem.text = "$(sync~spin) EECS 280: Verifying...";
+  statusBarItem.tooltip = "Checking your EECS 280 environment...";
+  statusBarItem.show();
+  context.subscriptions.push(statusBarItem);
 
   // Auto-run verification on first install and after extension updates.
   //
@@ -223,8 +335,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const lastRunVersion = context.globalState.get<string>(
     LAST_VERIFY_VERSION_KEY
   );
+  const isFirstRunOrUpdate = lastRunVersion !== currentVersion;
 
-  if (lastRunVersion !== currentVersion) {
+  if (isFirstRunOrUpdate) {
     runVerificationForPlatform(context, true);
 
     // Only surface the "heads up" notification on platforms where we actually
@@ -238,6 +351,32 @@ export function activate(context: vscode.ExtensionContext): void {
 
     context.globalState.update(LAST_VERIFY_VERSION_KEY, currentVersion);
   }
+
+  // Kick off the silent background check that drives the status bar.
+  //
+  // On first install / update we skip the immediate silent check — the
+  // visible terminal launched above is already going to tell the student
+  // everything they need to know, and we don't want two bash processes
+  // racing to verify the same machine. The periodic interval picks up
+  // SILENT_CHECK_INTERVAL_MS later.
+  //
+  // On every other activation we wait 3 seconds before the first check so
+  // VS Code has fully settled (extensions loaded, terminals available).
+  if (!isFirstRunOrUpdate) {
+    setTimeout(() => {
+      void updateStatusBar(context, statusBarItem);
+    }, 3000);
+  }
+
+  // Re-run the silent check periodically so a student who ignored a failed
+  // verification still sees the red status bar update / clear when they fix
+  // (or don't fix) their environment.
+  const intervalHandle = setInterval(() => {
+    void updateStatusBar(context, statusBarItem);
+  }, SILENT_CHECK_INTERVAL_MS);
+  context.subscriptions.push({
+    dispose: () => clearInterval(intervalHandle),
+  });
 }
 
 /**
