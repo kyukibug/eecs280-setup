@@ -121,7 +121,7 @@ echo -e "  CLI Tools:  ${BLUE}https://eecs280staff.github.io/tutorials/setup_mac
 echo -e "  VS Code:    ${BLUE}https://eecs280staff.github.io/tutorials/setup_vscode_macos.html${NC}"
 echo ""
 
-sleep 1
+sleep 3
 
 
 # ── 0. Sanity check: are we actually on macOS? ─────────────────────────────
@@ -356,3 +356,8 @@ fi
 echo -e "  Questions? Visit: ${BLUE}https://eecs280staff.github.io/tutorials/${NC}"
 echo -e "${BOLD}══════════════════════════════════════════════════════════════${NC}"
 echo ""
+
+# Exit with code 1 if any issues were found (used by the VS Code extension)
+if [ "$ISSUES_FOUND" -gt 0 ]; then
+    exit 1
+fi

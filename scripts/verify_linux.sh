@@ -77,7 +77,7 @@ echo ""
 echo -e "  Setup Guide: ${BLUE}https://eecs280staff.github.io/tutorials/${NC}"
 echo ""
 
-sleep 1
+sleep 3
 
 # Check distro and version
 UBUNTU_VERSION=$(lsb_release -rs 2>/dev/null || echo "")
@@ -288,3 +288,8 @@ fi
 echo -e "  Questions? Visit: ${BLUE}https://eecs280staff.github.io/tutorials/${NC}"
 echo -e "${BOLD}══════════════════════════════════════════════════════════════${NC}"
 echo ""
+
+# Exit with code 1 if any issues were found (used by the VS Code extension)
+if [ "$ISSUES_FOUND" -gt 0 ]; then
+    exit 1
+fi
