@@ -1,16 +1,16 @@
 {
-  "name": "eecs280-setup",
+  "name": "setup280",
   "displayName": "EECS 280 Setup",
   "description": "One-click environment setup and verification for EECS 280 at the University of Michigan. Installs required extensions, applies course settings, and verifies your development environment.",
   "version": "1.1.4",
-  "publisher": "kyukibug",
+  "publisher": "eecs280",
   "author": {
     "name": "Alex Ni"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kyukibug/eecs280-setup"
+    "url": "https://github.com/eecs280staff/vscode-setup280"
   },
   "engines": {
     "vscode": "^1.85.0"
