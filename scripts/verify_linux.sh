@@ -77,7 +77,7 @@ echo ""
 echo -e "  Setup Guide: ${BLUE}https://eecs280staff.github.io/tutorials/${NC}"
 echo ""
 
-sleep 1
+sleep 3
 
 # Check distro and version
 UBUNTU_VERSION=$(lsb_release -rs 2>/dev/null || echo "")

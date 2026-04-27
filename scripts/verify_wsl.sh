@@ -83,7 +83,7 @@ echo -e "  WSL Setup:   ${BLUE}https://eecs280staff.github.io/tutorials/setup_ws
 echo -e "  VS Code:     ${BLUE}https://eecs280staff.github.io/tutorials/setup_vscode_wsl.html${NC}"
 echo ""
 
-sleep 1
+sleep 3
 
 # ── 0. Sanity check: are we actually in WSL? ─────────────────────────────
 if ! grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
