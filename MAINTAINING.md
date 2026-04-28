@@ -11,14 +11,14 @@ making changes, and publishing updates to the VS Code Marketplace.
 
 TypeScript is a dev dependency — no global install needed.
 
-You'll also need credentials for the `kyukibug` marketplace publisher
+You'll also need credentials for the `eecs280` marketplace publisher
 (get these from the previous maintainer).
 
 ## Getting started
 
 ```bash
-git clone https://github.com/kyukibug/eecs280-setup.git
-cd eecs280-setup
+git clone https://github.com/eecs280staff/vscode-setup280.git
+cd vscode-setup280
 npm install
 npm run compile
 ```
@@ -29,16 +29,16 @@ to as the entry point.
 ## Project layout
 
 ```
-eecs280-setup/
+vscode-setup280/
 ├── package.json         ← Manifest: commands, settings, dependencies.
 │                          Most config changes happen here.
 ├── src/
 │   └── extension.ts     ← Detects OS, runs the right script, applies
-│                          LLDB settings.
+│                          settings.
 ├── scripts/
-│   ├── verify-macos.sh
-│   ├── verify-wsl.sh
-│   └── verify-linux.sh
+│   ├── verify_macos.sh
+│   ├── verify_wsl.sh
+│   └── verify_linux.sh
 ├── images/icon.png      ← 128x128 marketplace icon
 ├── README.md            ← Marketplace listing (student-facing)
 ├── MAINTAINING.md       ← This file
@@ -54,7 +54,7 @@ eecs280-setup/
 Student installs extension
         │
         ├─► package.json extensionDependencies
-        │   → Auto-installs C/C++, CodeLLDB, WSL extensions
+        │   → Auto-installs C/C++ and CodeLLDB extensions
         │
         ├─► package.json configurationDefaults
         │   → Sets chat.disableAIFeatures = true
@@ -63,7 +63,7 @@ Student installs extension
         │   → Sets lldb.showDisassembly = "never"
         │
         └─► Student runs "EECS 280: Verify Setup"
-            → detectPlatform() → runs scripts/verify-{macos,wsl,linux}.sh
+            → detectPlatform() → runs scripts/verify_{macos,wsl,linux}.sh
 ```
 
 ## Development workflow
@@ -88,7 +88,7 @@ Script changes don't need recompilation — just re-run the command.
 ```bash
 npm run compile
 npm run package
-code --install-extension eecs280-setup-X.X.X.vsix
+code --install-extension setup280-X.X.X.vsix
 ```
 
 Restart VS Code, then verify:
@@ -99,7 +99,7 @@ Restart VS Code, then verify:
 To uninstall:
 
 ```bash
-code --uninstall-extension kyukibug.eecs280-setup
+code --uninstall-extension eecs280.setup280
 ```
 
 ## Common tasks
@@ -163,10 +163,10 @@ students on the next update.
    npm run compile
    npm run package
    ```
-   Produces `eecs280-setup-X.X.X.vsix`.
-4. **Upload** at https://marketplace.visualstudio.com/manage → `kyukibug`
+   Produces `setup280-X.X.X.vsix`.
+4. **Upload** at https://marketplace.visualstudio.com/manage → `eecs280`
    → the extension → **Update** → upload the `.vsix`.
-5. **Verify** at https://marketplace.visualstudio.com/items?itemName=kyukibug.eecs280-setup
+5. **Verify** at https://marketplace.visualstudio.com/items?itemName=eecs280.setup280
 
 Students get the update automatically on next VS Code restart. Updates
 typically go live within minutes; the first-ever publish of a new

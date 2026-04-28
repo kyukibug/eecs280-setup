@@ -6,7 +6,7 @@ One-click environment setup and verification for [EECS 280](https://eecs280.org)
 
 When you install this extension, it automatically:
 
-- **Installs required VS Code extensions:** [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) for C++ editing and debugging. On Windows, the [WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) extension is also installed. You may see these appear in your Extensions panel — that's expected.
+- **Installs required VS Code extensions:** [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) for C++ editing and debugging. You may see these appear in your Extensions panel — that's expected.
 - **Applies course-default settings:** disables AI/Copilot features and configures LLDB for the course's debugging workflow.
 - **Runs verification automatically:** on first install and after extension updates, a terminal opens and checks that your development environment is set up correctly. The script will explain any issues it finds and offer to fix them.
 
@@ -14,7 +14,7 @@ It also provides an **EECS 280: Verify Setup** command you can run manually any 
 
 ## Usage
 
-Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=kyukibug.eecs280-setup). Verification runs automatically the first time the extension loads (and again after updates) — a terminal will open and check your environment. Follow any prompts; if the script finds issues, it will explain each one and offer to fix it.
+Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=eecs280.setup280). Verification runs automatically the first time the extension loads (and again after updates) — a terminal will open and check your environment. Follow any prompts; if the script finds issues, it will explain each one and offer to fix it.
 
 ### Re-running verification manually
 
@@ -58,7 +58,7 @@ Open VS Code, press `Cmd+Shift+P` (or `Ctrl+Shift+P`), type "Shell Command: Inst
 
 ## For course staff
 
-This extension is maintained at [github.com/kyukibug/eecs280-setup](https://github.com/kyukibug/eecs280-setup).
+This extension is maintained at [github.com/eecs280staff/vscode-setup280](https://github.com/eecs280staff/vscode-setup280).
 
 Related documentation that references this extension (update alongside changes here):
 
