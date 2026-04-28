@@ -154,19 +154,24 @@ students on the next update.
 
 ## Publishing an update
 
+Publishing is automated. Push a `vX.Y.Z` tag and GitHub Actions builds
+and publishes to the Marketplace.
+
 1. **Make your changes** and test with `F5` and/or a local `.vsix` install.
 2. **Bump the version** in `package.json`:
    - Bug fix: `1.0.0` → `1.0.1`
    - New feature: `1.0.0` → `1.1.0`
-3. **Build**:
+3. **Commit and tag**:
    ```bash
-   npm run compile
-   npm run package
+   git commit -am "Release vX.Y.Z"
+   git push
+   git tag vX.Y.Z
+   git push --tags
    ```
-   Produces `setup280-X.X.X.vsix`.
-4. **Upload** at https://marketplace.visualstudio.com/manage → `eecs280`
-   → the extension → **Update** → upload the `.vsix`.
-5. **Verify** at https://marketplace.visualstudio.com/items?itemName=eecs280.setup280
+4. **Watch the run** at https://github.com/eecs280staff/vscode-setup280/actions.
+   The `Publish` workflow checks the tag matches `package.json`, compiles,
+   and runs `vsce publish`.
+5. **Verify** at https://marketplace.visualstudio.com/items?itemName=eecs280.setup280.
 
 Students get the update automatically on next VS Code restart. Updates
 typically go live within minutes; the first-ever publish of a new
@@ -174,6 +179,40 @@ extension can take 24–48 hours for review.
 
 To pull a bad version: on the marketplace page, click the extension →
 **Unpublish**.
+
+### Manual publish (fallback)
+
+If the GitHub Actions workflow is broken, publish locally:
+
+```bash
+npm run compile
+npm run package
+npm run publish     # needs VSCE_PAT in env, or run `vsce login eecs280` first
+```
+
+Or upload `setup280-X.X.X.vsix` at
+https://marketplace.visualstudio.com/manage → `eecs280` → the extension
+→ **Update**.
+
+### One-time CI setup
+
+The publish workflow needs a Marketplace Personal Access Token stored as
+a GitHub Actions secret:
+
+1. Sign in to https://dev.azure.com with the account that owns the
+   `eecs280` Marketplace publisher.
+2. **User settings** (top right) → **Personal access tokens** → **New Token**.
+   - **Organization**: All accessible organizations
+   - **Scopes**: **Custom defined** → **Marketplace** → **Manage**
+   - Set an expiration you'll remember to renew (max 1 year).
+3. Copy the token (you only see it once).
+4. In GitHub: https://github.com/eecs280staff/vscode-setup280/settings/secrets/actions
+   → **New repository secret** → name `VSCE_PAT`, value the token.
+
+Renew the token before it expires; the publish workflow will start
+failing with a 401 from `vsce` once it does.
+
+Reference: https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token
 
 ## Troubleshooting
 
