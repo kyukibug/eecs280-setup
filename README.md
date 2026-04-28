@@ -1,6 +1,6 @@
 # EECS 280 Setup
 
-One-click environment setup and verification for [EECS 280](https://eecs280.org) at the University of Michigan.
+One-click VS Code environment setup and verification for [EECS 280](https://eecs280.org) at the University of Michigan.
 
 ## What this extension does
 
