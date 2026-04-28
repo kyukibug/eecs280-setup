@@ -2,23 +2,25 @@
 
 One-click VS Code environment setup and verification for [EECS 280](https://eecs280.org) at the University of Michigan.
 
+## Quick Start
+
+**[Install in VS Code](vscode:extension/eecs280.setup280)** — opens VS Code and installs the extension in one click.
+
+If the link doesn't open VS Code, install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=eecs280.setup280) instead.
+
 ## What this extension does
 
 When you install this extension, it automatically:
 
-- **Installs required VS Code extensions:** [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) for C++ editing and debugging. You may see these appear in your Extensions panel — that's expected.
-- **Applies course-default settings:** disables AI/Copilot features and configures LLDB for the course's debugging workflow.
+- **Installs required VS Code extensions:** [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) for C++ editing and debugging.
+- **Applies course-default settings:** disables AI/Copilot features (per the course's GenAI policy) and configures LLDB for the course's debugging workflow.
 - **Runs verification automatically:** on first install and after extension updates, a terminal opens and checks that your development environment is set up correctly. The script will explain any issues it finds and offer to fix them.
 
 It also provides an **EECS 280: Verify Setup** command you can run manually any time you want to re-check your environment.
 
-## Usage
+## Re-running verification
 
-Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=eecs280.setup280). Verification runs automatically the first time the extension loads (and again after updates) — a terminal will open and check your environment. Follow any prompts; if the script finds issues, it will explain each one and offer to fix it.
-
-### Re-running verification manually
-
-To re-check your environment later:
+Verification runs automatically on first install and after updates (see above). To re-check manually any time:
 
 1. Open the Command Palette:
    - macOS: `Cmd+Shift+P`
@@ -28,22 +30,15 @@ To re-check your environment later:
 
 ## What gets checked
 
-### macOS
-- Xcode Command Line Tools (C++ compiler)
-- Homebrew (package manager)
-- CLI tools: `tree`, `wget`, `git`
-- VS Code `code` command
-
-### Windows (WSL)
-- WSL environment (user account, WSL version)
-- C++ toolchain: `g++`, `gdb`, `make`
-- CLI tools: `tree`, `wget`, `git`, `rsync`, `ssh`, `python3`
-- VS Code `code` command
-
-### Native Linux
-- C++ toolchain: `g++`, `gdb`, `make`
-- CLI tools: `tree`, `wget`, `git`, `rsync`, `ssh`, `python3`
-- VS Code `code` command
+| Check | macOS | WSL | Linux |
+|---|:---:|:---:|:---:|
+| Xcode Command Line Tools (C++ compiler) | ✓ | — | — |
+| Homebrew (package manager) | ✓ | — | — |
+| WSL environment (user, version) | — | ✓ | — |
+| `g++`, `gdb`, `make` | — | ✓ | ✓ |
+| `tree`, `wget`, `git` | ✓ | ✓ | ✓ |
+| `rsync`, `ssh`, `python3` | — | ✓ | ✓ |
+| VS Code `code` command | ✓ | ✓ | ✓ |
 
 ## Troubleshooting
 
@@ -56,9 +51,12 @@ Try running `xcode-select --install` directly in Terminal.
 **'code' command not found**
 Open VS Code, press `Cmd+Shift+P` (or `Ctrl+Shift+P`), type "Shell Command: Install 'code' command in PATH", and run it. Then restart your terminal.
 
+**Copilot/AI features stopped working after install**
+This is intentional — the extension disables AI assistants per the course's GenAI policy. Contact course staff if you have questions.
+
 ## For course staff
 
-This extension is maintained at [github.com/eecs280staff/vscode-setup280](https://github.com/eecs280staff/vscode-setup280).
+This extension is maintained at [github.com/eecs280staff/vscode-setup280](https://github.com/eecs280staff/vscode-setup280). See [MAINTAINING.md](MAINTAINING.md) for the maintainer guide (release process, testing, and contribution workflow), and [AGENTS.md](AGENTS.md) for guidance on AI coding agents working in this repo.
 
 Related documentation that references this extension (update alongside changes here):
 
