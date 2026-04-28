@@ -14,6 +14,7 @@ When you install this extension, it automatically:
 
 - **Installs required VS Code extensions:** [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) for C++ editing and debugging.
 - **Applies course-default settings:** disables AI/Copilot features (per the course's GenAI policy) and configures LLDB for the course's debugging workflow.
+- **Generates a default `launch.json`:** when you open a folder containing C++ files (`.cpp`, `.hpp`, `.h`, `.cc`) and no `.vscode/launch.json` yet, the extension writes a starter debugger config matching the course tutorial — CodeLLDB on macOS, Microsoft cppdbg/gdb on WSL and Linux. Update the `program` field if your executable isn't named `main.exe`. An existing `launch.json` is never overwritten.
 - **Runs verification automatically:** on first install and after extension updates, a terminal opens and checks that your development environment is set up correctly. The script will explain any issues it finds and offer to fix them.
 
 It also provides an **EECS 280: Verify Setup** command you can run manually any time you want to re-check your environment.
