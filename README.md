@@ -1,12 +1,12 @@
 # EECS 280 Setup
 
-One-click VS Code environment setup and verification for [EECS 280](https://eecs280.org) at the University of Michigan.
+A VS Code extension for [EECS 280](https://eecs280.org) environment setup.
 
 ## Quick Start
 
-Click to [install in VS Code](vscode:extension/eecs280.setup280), opens VS Code and installs the extension in one click.
+Install the EECS 280 Course Setup extension from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=eecs280.setup280)
 
-If the link doesn't open VS Code, install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=eecs280.setup280) instead.
+Use this link for deploy in custom HTML: `vscode:extension/eecs280.setup280`.  It will open VS Code and install the extension with one click.
 
 ## What this extension does
 
