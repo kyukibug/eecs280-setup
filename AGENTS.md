@@ -43,9 +43,24 @@ Three things drive behavior, two of them declarative:
 `activate()` does, in order:
 - Set `lldb.showDisassembly = "never"` globally (can't go in `configurationDefaults`).
 - Register `eecs280.verifySetup` and `eecs280.reopenInWsl` commands.
-- Create a persistent status bar item that drives a silent re-check every 10 min (`SILENT_CHECK_INTERVAL_MS`).
+- Create a persistent status bar item that drives a silent re-check every 10 min (`SILENT_CHECK_INTERVAL_MS`). Each tick of `updateStatusBar` first calls `maybeCreateLaunchJson` (see below), then runs the verify script silently.
 - Async-detect Windows-without-WSL (see below) and override the status bar / show a notification if matched.
 - Auto-run verification on first install / after update by comparing `context.globalState.get(LAST_VERIFY_VERSION_KEY)` against `context.extension.packageJSON.version`.
+
+### Auto-generated `launch.json`
+
+`maybeCreateLaunchJson(platform)` runs on every `updateStatusBar` tick (3 seconds after activation, then every 10 minutes). For each workspace folder it:
+
+- Bails out if `.vscode/launch.json` already exists — student-authored configs are never overwritten.
+- Calls `vscode.workspace.findFiles("**/*.{cpp,hpp,h,cc}", "**/node_modules/**", 1)` to detect a C++ project.
+- If at least one match exists, writes a platform-appropriate template using `fs.writeFileSync(..., { flag: "wx" })` (the `wx` flag closes the existsSync→write race).
+
+Two templates live as string constants at the top of `extension.ts`:
+
+- `MACOS_LAUNCH_JSON` — CodeLLDB (`"type": "lldb"`, `"env": {}` as an object). Matches `setup_vscode_macos.md`.
+- `CPPDBG_LAUNCH_JSON` — Microsoft cppdbg (`"type": "cppdbg"`, `"environment": []` as an array, `MIMode: "gdb"`, gdb pretty-printing setupCommand). Used for `wsl`, `linux`, and `windows` (the file is harmless until the student reopens in WSL). Matches `setup_vscode_wsl.md`.
+
+**Keep these templates in sync with the EECS 280 tutorials repo** ([`eecs280staff/tutorials`](https://github.com/eecs280staff/tutorials/), specifically `docs/setup_vscode_macos.md` and `docs/setup_vscode_wsl.md`). The tutorial prose walks students through editing fields step by step (e.g., "if there's already an empty `env: {}`, replace it") and assumes the exact shape we generate — diverging silently breaks every screenshot and instruction. When the tutorial changes, update the matching template constant.
 
 Two ways the verify script gets run:
 - **`runScriptInTerminal`** — visible terminal, lets the student answer `[y/n]` install prompts. Used for the manual command and the auto-run-on-update.
