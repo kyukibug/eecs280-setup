@@ -4,7 +4,7 @@ One-click VS Code environment setup and verification for [EECS 280](https://eecs
 
 ## Quick Start
 
-**[Install in VS Code](vscode:extension/eecs280.setup280)** — opens VS Code and installs the extension in one click.
+Click to [install in VS Code](vscode:extension/eecs280.setup280), opens VS Code and installs the extension in one click.
 
 If the link doesn't open VS Code, install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=eecs280.setup280) instead.
 
