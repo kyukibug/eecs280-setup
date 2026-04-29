@@ -1,16 +1,14 @@
 # EECS 280 Setup
 
-A VS Code extension for [EECS 280](https://eecs280.org) environment setup.
+One-click environment setup and verification for [EECS 280](https://eecs280.org) at the University of Michigan.
 
 ## Quick Start
 
 Install the EECS 280 Course Setup extension from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=eecs280.setup280)
 
-Use this link for deploy in custom HTML: `vscode:extension/eecs280.setup280`.  It will open VS Code and install the extension with one click.
-
 ## Summary
 
-This extension automatically configures VS Code and verifies your EECS 280 C++ development environment.  The end result should match following the EECS 280 [Setup tutorials](https://eecs280staff.github.io/tutorials/).
+This extension automatically configures VS Code and verifies your EECS 280 C++ development environment.  The end result should match what you'd get by following the EECS 280 [Setup tutorials](https://eecs280staff.github.io/tutorials/).
 
 | | macOS | WSL | Linux |
 |---|:---:|:---:|:---:|
@@ -29,7 +27,7 @@ The verification script will explain any issues it finds and offer to fix them. 
 
 ## Re-running verification
 
-The verification script re-runs automatically on first install and after each extension update.  To re-check your environment manually:
+The verification script re-runs automatically on first install and after each extension update, plus a silent re-check every 10 minutes that keeps the **EECS 280** status bar indicator (✓ / error / warning) up to date.  To re-check your environment manually:
 
 1. Open the Command Palette:
    - macOS: `Cmd+Shift+P`
@@ -41,6 +39,9 @@ The verification script re-runs automatically on first install and after each ex
 
 **Windows: "EECS 280 requires WSL"**
 You need to install WSL and Ubuntu first, then connect VS Code to WSL. See the [WSL setup guide](https://eecs280staff.github.io/tutorials/setup_wsl.html).
+
+**Windows: "Not in WSL" status bar warning**
+You have WSL installed, but VS Code is running as a Windows app. The extension shows a "Reopen in WSL" notification on activation, and clicking the **EECS 280: Not in WSL** status bar item also reopens the current folder inside WSL.
 
 **macOS: Xcode CLT installation dialog doesn't appear**
 Try running `xcode-select --install` directly in Terminal.
@@ -60,6 +61,9 @@ Related documentation that references this extension (update alongside changes h
 - [EECS 280 tutorials repo](https://github.com/eecs280staff/tutorials/)
 - [macOS VS Code setup guide](https://github.com/eecs280staff/tutorials/blob/main/docs/setup_vscode_macos.md)
 - [WSL VS Code setup guide](https://github.com/eecs280staff/tutorials/blob/main/docs/setup_vscode_wsl.md)
+
+To embed an install link in HTML (e.g., a course web page), use `vscode:extension/eecs280.setup280` — clicking it opens VS Code and installs the extension with one click.
+
 
 ## Acknowledgements
 
