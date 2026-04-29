@@ -8,38 +8,34 @@ Install the EECS 280 Course Setup extension from the [Marketplace](https://marke
 
 Use this link for deploy in custom HTML: `vscode:extension/eecs280.setup280`.  It will open VS Code and install the extension with one click.
 
-## What this extension does
+## Summary
 
-When you install this extension, it automatically:
+This extension automatically configures VS Code and verifies your EECS 280 C++ development environment.  The end result should match following the EECS 280 [Setup tutorials](https://eecs280staff.github.io/tutorials/).
 
-- **Installs required VS Code extensions:** [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) for C++ editing and debugging.
-- **Applies course-default settings:** disables AI/Copilot features (per the course's GenAI policy) and configures LLDB for the course's debugging workflow.
-- **Generates a default `launch.json`:** when you open a folder containing C++ files (`.cpp`, `.hpp`, `.h`, `.cc`) and no `.vscode/launch.json` yet, the extension writes a starter debugger config matching the course tutorial — CodeLLDB on macOS, Microsoft cppdbg/gdb on WSL and Linux. Update the `program` field if your executable isn't named `main.exe`. An existing `launch.json` is never overwritten.
-- **Runs verification automatically:** on first install and after extension updates, a terminal opens and checks that your development environment is set up correctly. The script will explain any issues it finds and offer to fix them.
+| | macOS | WSL | Linux |
+|---|:---:|:---:|:---:|
+| Installs [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) extensions | ✓ | ✓ | ✓ |
+| Disables AI/Copilot features (per GenAI [policy](https://eecs280.org/syllabus.html#generative-ai-policy)) | ✓ | ✓ | ✓ |
+| Generates `.vscode/launch.json` if missing | ✓ (CodeLLDB) | ✓ (cppdbg/gdb) | ✓ (cppdbg/gdb) |
+| Checks Xcode Command Line Tools | ✓ | — | — |
+| Checks Homebrew | ✓ | — | — |
+| Checks WSL version and user | — | ✓ | — |
+| Checks `g++`, `gdb`, `make` | — | ✓ | ✓ |
+| Checks `tree`, `wget`, `git` | ✓ | ✓ | ✓ |
+| Checks `rsync`, `ssh`, `python3` | — | ✓ | ✓ |
+| Checks VS Code `code` command | ✓ | ✓ | ✓ |
 
-It also provides an **EECS 280: Verify Setup** command you can run manually any time you want to re-check your environment.
+The verification script will explain any issues it finds and offer to fix them. The default `launch.json` is only written when the open folder contains C++ files (`.cpp`, `.hpp`, `.h`, `.cc`); an existing one is never overwritten.
 
 ## Re-running verification
 
-Verification runs automatically on first install and after updates (see above). To re-check manually any time:
+The verification script re-runs automatically on first install and after each extension update.  To re-check your environment manually:
 
 1. Open the Command Palette:
    - macOS: `Cmd+Shift+P`
    - Windows/Linux: `Ctrl+Shift+P`
 2. Type **EECS 280: Verify Setup** and press Enter.
 3. Follow any prompts in the terminal.
-
-## What gets checked
-
-| Check | macOS | WSL | Linux |
-|---|:---:|:---:|:---:|
-| Xcode Command Line Tools (C++ compiler) | ✓ | — | — |
-| Homebrew (package manager) | ✓ | — | — |
-| WSL environment (user, version) | — | ✓ | — |
-| `g++`, `gdb`, `make` | — | ✓ | ✓ |
-| `tree`, `wget`, `git` | ✓ | ✓ | ✓ |
-| `rsync`, `ssh`, `python3` | — | ✓ | ✓ |
-| VS Code `code` command | ✓ | ✓ | ✓ |
 
 ## Troubleshooting
 
@@ -55,9 +51,9 @@ Open VS Code, press `Cmd+Shift+P` (or `Ctrl+Shift+P`), type "Shell Command: Inst
 **Copilot/AI features stopped working after install**
 This is intentional — the extension disables AI assistants per the course's GenAI policy. Contact course staff if you have questions.
 
-## For course staff
+## Contributing and maintaining
 
-This extension is maintained at [github.com/eecs280staff/vscode-setup280](https://github.com/eecs280staff/vscode-setup280). See [MAINTAINING.md](MAINTAINING.md) for the maintainer guide (release process, testing, and contribution workflow), and [AGENTS.md](AGENTS.md) for guidance on AI coding agents working in this repo.
+See [MAINTAINING.md](MAINTAINING.md) for the maintainer guide (release process, testing, and contribution workflow), and [AGENTS.md](AGENTS.md) for guidance on AI coding agents working in this repo.
 
 Related documentation that references this extension (update alongside changes here):
 
@@ -65,6 +61,6 @@ Related documentation that references this extension (update alongside changes h
 - [macOS VS Code setup guide](https://github.com/eecs280staff/tutorials/blob/main/docs/setup_vscode_macos.md)
 - [WSL VS Code setup guide](https://github.com/eecs280staff/tutorials/blob/main/docs/setup_vscode_wsl.md)
 
----
+## Acknowledgements
 
-*Created by Alex Ni for EECS 280 at the University of Michigan.*
+The original extension was written by Alex Ni in 2026.
