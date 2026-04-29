@@ -655,8 +655,8 @@ async function updateStatusBar(
  *
  * This happens when:
  *   - The user runs the "EECS 280: Verify Setup" command
- *   - VS Code starts and the extension is installed (due to empty
- *     activationEvents in package.json, which means activate on startup)
+ *   - VS Code finishes starting up and the extension is installed (due to
+ *     "onStartupFinished" in package.json activationEvents)
  */
 export function activate(context: vscode.ExtensionContext): void {
   // Apply LLDB settings programmatically.
