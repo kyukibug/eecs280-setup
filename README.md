@@ -13,6 +13,7 @@ This extension automatically configures VS Code and verifies your EECS 280 C++ d
 | | macOS | WSL | Linux |
 |---|:---:|:---:|:---:|
 | Installs [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) and [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) extensions | ✓ | ✓ | ✓ |
+| Installs [WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) extension | — | ✓ | — |
 | Disables AI/Copilot features (per GenAI [policy](https://eecs280.org/syllabus.html#generative-ai-policy)) | ✓ | ✓ | ✓ |
 | Generates `.vscode/launch.json` if missing | ✓ (CodeLLDB) | ✓ (cppdbg/gdb) | ✓ (cppdbg/gdb) |
 | Checks Xcode Command Line Tools | ✓ | — | — |
