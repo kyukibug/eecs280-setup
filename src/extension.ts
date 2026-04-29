@@ -464,37 +464,6 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
-  // Refresh the status bar when a verify run finishes, instead of waiting up
-  // to SILENT_CHECK_INTERVAL_MS for the next periodic check. Without this, a
-  // student who installs a missing tool via the [y/n] prompt sees a stale
-  // "Setup Incomplete" until the next interval fires.
-  //
-  // Two listeners cover the cases:
-  //   - onDidEndTerminalShellExecution fires the instant `bash <script>` exits,
-  //     giving immediate feedback while the terminal is still open. Requires
-  //     shell integration (VS Code 1.93+); feature-detect since engines is
-  //     ^1.85.0.
-  //   - onDidCloseTerminal is the universal fallback for older VS Code or
-  //     terminals that never gained shell integration.
-  //
-  // No "EECS 280 Setup" terminal is created on Windows-without-WSL, so we
-  // don't need to special-case that path here.
-  const refreshOnVerifyTerminalEnd = (terminal: vscode.Terminal) => {
-    if (terminal.name === "EECS 280 Setup") {
-      void updateStatusBar(context, statusBarItem);
-    }
-  };
-  context.subscriptions.push(
-    vscode.window.onDidCloseTerminal(refreshOnVerifyTerminalEnd)
-  );
-  if (typeof vscode.window.onDidEndTerminalShellExecution === "function") {
-    context.subscriptions.push(
-      vscode.window.onDidEndTerminalShellExecution((event) => {
-        refreshOnVerifyTerminalEnd(event.terminal);
-      })
-    );
-  }
-
   // Detect Windows-with-unused-WSL state BEFORE doing anything else.
   //
   // This is a state where the student has WSL installed but launched VS Code
@@ -599,12 +568,13 @@ export function activate(context: vscode.ExtensionContext): void {
   //
   // Two complementary triggers:
   //   - onDidEndTerminalShellExecution: fires when the verify command's
-  //     prompt returns. Requires shell integration, which bash gets
-  //     automatically in modern VS Code. This catches the case where the
+  //     prompt returns. Requires shell integration (VS Code 1.93+) that bash
+  //     gets automatically in modern VS Code. This catches the case where the
   //     student fixes issues and leaves the terminal open.
   //   - onDidCloseTerminal: fallback for environments where shell
   //     integration isn't active. Catches the common case where the student
   //     closes the terminal after seeing the verify finish.
+if (typeof vscode.window.onDidEndTerminalShellExecution === "function") {
   context.subscriptions.push(
     vscode.window.onDidEndTerminalShellExecution((event) => {
       if (normalFlowCancelled) {
@@ -621,16 +591,18 @@ export function activate(context: vscode.ExtensionContext): void {
       void updateStatusBar(context, statusBarItem);
     })
   );
-  context.subscriptions.push(
-    vscode.window.onDidCloseTerminal((terminal) => {
-      if (normalFlowCancelled) {
-        return;
-      }
-      if (terminal.name === "EECS 280 Setup") {
-        void updateStatusBar(context, statusBarItem);
-      }
-    })
-  );
+}
+
+context.subscriptions.push(
+  vscode.window.onDidCloseTerminal((terminal) => {
+    if (normalFlowCancelled) {
+      return;
+    }
+    if (terminal.name === "EECS 280 Setup") {
+      void updateStatusBar(context, statusBarItem);
+    }
+  })
+);
 }
 
 /**
