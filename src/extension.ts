@@ -560,6 +560,46 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push({
     dispose: () => clearInterval(intervalHandle),
   });
+
+  // Refresh the status bar promptly after a verify run in the visible
+  // terminal — otherwise a student who fixes issues from the verify prompts
+  // would see a stale status bar until the next periodic silent check fires
+  // (up to SILENT_CHECK_INTERVAL_MS later).
+  //
+  // Two complementary triggers:
+  //   - onDidEndTerminalShellExecution: fires when the verify command's
+  //     prompt returns. Requires shell integration, which bash gets
+  //     automatically in modern VS Code. This catches the case where the
+  //     student fixes issues and leaves the terminal open.
+  //   - onDidCloseTerminal: fallback for environments where shell
+  //     integration isn't active. Catches the common case where the student
+  //     closes the terminal after seeing the verify finish.
+  context.subscriptions.push(
+    vscode.window.onDidEndTerminalShellExecution((event) => {
+      if (normalFlowCancelled) {
+        return;
+      }
+      if (event.terminal.name !== "EECS 280 Setup") {
+        return;
+      }
+      // Filter to the verify command itself so unrelated commands the
+      // student might type in the same terminal don't trigger refreshes.
+      if (!event.execution.commandLine.value.includes("verify_")) {
+        return;
+      }
+      void updateStatusBar(context, statusBarItem);
+    })
+  );
+  context.subscriptions.push(
+    vscode.window.onDidCloseTerminal((terminal) => {
+      if (normalFlowCancelled) {
+        return;
+      }
+      if (terminal.name === "EECS 280 Setup") {
+        void updateStatusBar(context, statusBarItem);
+      }
+    })
+  );
 }
 
 /**
