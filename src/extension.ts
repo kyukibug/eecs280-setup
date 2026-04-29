@@ -197,10 +197,14 @@ async function ensureWslExtensionInstalled(): Promise<void> {
       "workbench.extensions.installExtension",
       "ms-vscode-remote.remote-wsl"
     );
-  } catch {
+  } catch (err) {
     // Best-effort. If install fails the student lands in the same state
-    // as before this fix — "Reopen in WSL" silently no-ops — and we
-    // retry on the next activation since getExtension stays null.
+    // as before this fix and we retry on the next activation (getExtension
+    // stays null). Logged so a TA helping a stuck student has something
+    // to look at in Help → Toggle Developer Tools; the
+    // post-install-still-missing case is also surfaced to the student via
+    // an alternate message in maybeShowWslNotification below.
+    console.warn("setup280: WSL extension install failed", err);
   }
 }
 
@@ -519,9 +523,16 @@ function setStatusBarToWslWarning(statusBarItem: vscode.StatusBarItem): void {
  *
  * Respects the per-workspace dismissal flag — if the student has clicked
  * "Don't show again" in this folder before, this is a no-op.
+ *
+ * When `wslExtensionMissing` is true, swaps to a "couldn't auto-install"
+ * message with a button that opens the extension's Marketplace page so
+ * the student can install it manually. Without this branch, clicking
+ * "Reopen in WSL" would invoke a non-existent command and silently fail
+ * — the exact bug ensureWslExtensionInstalled is trying to prevent.
  */
 async function maybeShowWslNotification(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  wslExtensionMissing: boolean
 ): Promise<void> {
   const dismissed = context.workspaceState.get<boolean>(
     WSL_NOTIFICATION_DISMISSED_KEY,
@@ -531,8 +542,30 @@ async function maybeShowWslNotification(
     return;
   }
 
-  const reopenLabel = "Reopen in WSL";
   const dontShowLabel = "Don't show again";
+
+  if (wslExtensionMissing) {
+    const installLabel = "Install WSL Extension";
+    const selection = await vscode.window.showWarningMessage(
+      "EECS 280: The VS Code WSL extension couldn't be installed automatically. " +
+        'Install it manually, then use "Reopen in WSL" to continue.',
+      installLabel,
+      dontShowLabel
+    );
+    if (selection === installLabel) {
+      // extension.open opens the extension details page in the Extensions
+      // view, where the student can click Install.
+      await vscode.commands.executeCommand(
+        "extension.open",
+        "ms-vscode-remote.remote-wsl"
+      );
+    } else if (selection === dontShowLabel) {
+      await context.workspaceState.update(WSL_NOTIFICATION_DISMISSED_KEY, true);
+    }
+    return;
+  }
+
+  const reopenLabel = "Reopen in WSL";
 
   const selection = await vscode.window.showWarningMessage(
     "EECS 280: VS Code is running on Windows, but EECS 280 work should be done inside WSL. " +
@@ -699,7 +732,15 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     normalFlowCancelled = true;
     setStatusBarToWslWarning(statusBarItem);
-    void maybeShowWslNotification(context);
+    // Re-check after the install attempt: if the extension is still
+    // missing, the install actually failed (network down, Marketplace
+    // blocked, corporate-managed install policy). Surface a different
+    // notification that points the student at manual install instead of
+    // offering a "Reopen in WSL" button that would silently no-op.
+    const wslExtensionMissing = !vscode.extensions.getExtension(
+      "ms-vscode-remote.remote-wsl"
+    );
+    void maybeShowWslNotification(context, wslExtensionMissing);
   })();
 
   // Auto-run verification on first install and after extension updates.
