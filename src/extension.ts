@@ -156,6 +156,55 @@ function isWindowsWithUnusedWsl(): Promise<boolean> {
 }
 
 /**
+ * Ensures the VS Code WSL extension (ms-vscode-remote.remote-wsl) is
+ * installed on Windows-desktop VS Code. No-op on every other platform.
+ *
+ * Why this exists: extensionDependencies in package.json can't carry an
+ * OS-specific entry — the WSL extension is Windows-only, and putting it
+ * in extensionDependencies would make setup280 fail to activate on
+ * macOS/Linux. extensionPack is also wrong: VS Code installs pack entries
+ * on every platform regardless of the inner extension's OS targeting
+ * (verified empirically — the WSL extension installs as a real, fully
+ * resolved extension on macOS). So we install it conditionally at runtime.
+ *
+ * Without this, the "Reopen in WSL" notification surfaced from
+ * isWindowsWithUnusedWsl below silently fails on Windows machines where
+ * the student hasn't installed the WSL extension manually: the command
+ * "remote-wsl.reopenInWSL" doesn't exist if its extension isn't
+ * installed, and executeCommand swallows the unknown-command error.
+ *
+ * Best-effort: a failed install (offline, Marketplace down) falls
+ * through to the existing flow, which is no worse than today.
+ *
+ * Not gated on isWindowsWithUnusedWsl. Installing the WSL extension is
+ * useful even when WSL itself isn't registered yet — when the student
+ * installs WSL later, the VS Code-side bridge is already in place. The
+ * cost is one Marketplace download on Windows machines that may never
+ * end up using WSL.
+ */
+async function ensureWslExtensionInstalled(): Promise<void> {
+  if (process.platform !== "win32") {
+    return;
+  }
+  if (vscode.env.remoteName === "wsl") {
+    return;
+  }
+  if (vscode.extensions.getExtension("ms-vscode-remote.remote-wsl")) {
+    return;
+  }
+  try {
+    await vscode.commands.executeCommand(
+      "workbench.extensions.installExtension",
+      "ms-vscode-remote.remote-wsl"
+    );
+  } catch {
+    // Best-effort. If install fails the student lands in the same state
+    // as before this fix — "Reopen in WSL" silently no-ops — and we
+    // retry on the next activation since getExtension stays null.
+  }
+}
+
+/**
  * Returns the absolute path to a script bundled with the extension.
  *
  * Scripts live in the scripts/ directory at the extension root. When the
@@ -638,14 +687,20 @@ export function activate(context: vscode.ExtensionContext): void {
   // check resolves true after the timer was already set.
   let normalFlowCancelled = false;
 
-  void isWindowsWithUnusedWsl().then((isUnusedWsl) => {
+  // First make sure the WSL extension is installed (Windows-only, no-op
+  // elsewhere) so that any "Reopen in WSL" UI we surface below has a
+  // working remote-wsl.reopenInWSL command behind it. Then run the
+  // existing unused-WSL detection.
+  void (async () => {
+    await ensureWslExtensionInstalled();
+    const isUnusedWsl = await isWindowsWithUnusedWsl();
     if (!isUnusedWsl) {
       return;
     }
     normalFlowCancelled = true;
     setStatusBarToWslWarning(statusBarItem);
     void maybeShowWslNotification(context);
-  });
+  })();
 
   // Auto-run verification on first install and after extension updates.
   //
