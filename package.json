@@ -2,7 +2,7 @@
   "name": "setup280",
   "displayName": "EECS 280 Course Setup",
   "description": "One-click environment setup and verification for EECS 280 at the University of Michigan. Installs required extensions, applies course settings, and verifies your development environment.",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "publisher": "eecs280",
   "author": {
     "name": "Alex Ni"

@@ -34,9 +34,9 @@ The TypeScript layer is intentionally thin — it's a dispatcher. **All real ver
 
 Three things drive behavior, two of them declarative:
 
-1. **`package.json` `extensionDependencies`** — auto-installs `ms-vscode.cpptools` and `vadimcn.vscode-lldb` on student machines.
+1. **`package.json` `extensionDependencies`** — auto-installs `ms-vscode.cpptools` and `vadimcn.vscode-lldb` on student machines. The Windows-only WSL extension (`ms-vscode-remote.remote-wsl`) can't go here — it would block activation on macOS/Linux. `extensionPack` is also wrong: it installs pack entries on every platform regardless of OS targeting (verified empirically). The WSL extension is therefore installed at runtime — see "WSL extension auto-install" below.
 2. **`package.json` `contributes.configurationDefaults`** — only valid for *built-in* VS Code settings (e.g. `chat.disableAIFeatures`). VS Code's manifest validator rejects third-party-owned settings here.
-3. **`src/extension.ts` `activate()`** — sets third-party settings (e.g. `lldb.showDisassembly`) programmatically via `vscode.workspace.getConfiguration()`, registers commands, and runs verification.
+3. **`src/extension.ts` `activate()`** — sets third-party settings (e.g. `lldb.showDisassembly`) programmatically via `vscode.workspace.getConfiguration()`, registers commands, runs verification, and conditionally installs the WSL extension on Windows.
 
 ### `src/extension.ts` flow
 
@@ -44,7 +44,7 @@ Three things drive behavior, two of them declarative:
 - Set `lldb.showDisassembly = "never"` globally (can't go in `configurationDefaults`).
 - Register `eecs280.verifySetup` and `eecs280.reopenInWsl` commands.
 - Create a persistent status bar item that drives a silent re-check every 10 min (`SILENT_CHECK_INTERVAL_MS`). Each tick of `updateStatusBar` first calls `maybeCreateLaunchJson` (see below), then runs the verify script silently.
-- Async-detect Windows-without-WSL (see below) and override the status bar / show a notification if matched.
+- Async chain (Windows-only effective, no-op elsewhere): await `ensureWslExtensionInstalled()` → check `isWindowsWithUnusedWsl()` → if matched, override the status bar and show a notification (see below).
 - Auto-run verification on first install / after update by comparing `context.globalState.get(LAST_VERIFY_VERSION_KEY)` against `context.extension.packageJSON.version`.
 
 ### Auto-generated `launch.json`
@@ -73,6 +73,16 @@ Two ways the verify script gets run:
 `isWindowsWithUnusedWsl()` is a separate, more specific check: VS Code is on Windows, *not* connected to WSL (`vscode.env.remoteName !== "wsl"`), but `wsl.exe -l -q` reports at least one installed distro. This is the silent-failure mode where the student installed everything in WSL but launched VS Code as a Windows app. We surface a "Reopen in WSL" notification + status bar warning instead of running the script.
 
 > Note: `wsl.exe -l -q` outputs UTF-16 LE — the code collects bytes and decodes explicitly. Don't switch to a default-encoding string read.
+
+### WSL extension auto-install
+
+`ensureWslExtensionInstalled()` runs at the top of the Windows-only async chain in `activate()`. It is a no-op unless `process.platform === "win32"`, `vscode.env.remoteName !== "wsl"`, and `vscode.extensions.getExtension("ms-vscode-remote.remote-wsl")` is null. Otherwise it fires `workbench.extensions.installExtension` for `ms-vscode-remote.remote-wsl` inside a try/catch.
+
+Best-effort. On failure (offline, Marketplace blocked, corporate-managed install policy) the catch logs `console.warn("setup280: WSL extension install failed", err)` and falls through. The next activation retries because `getExtension` stays null.
+
+The install is intentionally **not** gated on `isWindowsWithUnusedWsl` — installing the bridge whenever Windows-desktop covers the student who installs WSL after setup280.
+
+After the install resolves, `activate()` re-checks `getExtension` once more. If still null and the student is in the unused-WSL state, `maybeShowWslNotification` swaps to a "couldn't auto-install — install it manually" message with an "Install WSL Extension" button that runs `extension.open` for the WSL extension's Marketplace page. Without this branch, clicking "Reopen in WSL" would invoke a non-existent command and silently fail — the bug we're fixing.
 
 ### Auto-run-on-update logic
 
