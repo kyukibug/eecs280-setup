@@ -42,7 +42,7 @@ The verification script re-runs automatically on first install and after each ex
 You need to install WSL and Ubuntu first, then connect VS Code to WSL. See the [WSL setup guide](https://eecs280staff.github.io/tutorials/setup_wsl.html).
 
 **Windows: "Not in WSL" status bar warning**
-You have WSL installed, but VS Code is running as a Windows app. The extension shows a "Reopen in WSL" notification on activation, and clicking the **EECS 280: Not in WSL** status bar item also reopens the current folder inside WSL.
+You have WSL installed, but VS Code is running as a Windows app. The extension shows a notification on activation — click **Open in WSL** (no folder open) or **Reopen in WSL** (folder open) to connect. Clicking the **EECS 280: Not in WSL** status bar item does the same thing. Once inside WSL, verification runs automatically.
 
 **macOS: Xcode CLT installation dialog doesn't appear**
 Try running `xcode-select --install` directly in Terminal.
