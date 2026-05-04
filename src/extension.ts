@@ -565,20 +565,22 @@ async function maybeShowWslNotification(
     return;
   }
 
-  const reopenLabel = "Reopen in WSL";
+  const hasFolderOpen =
+    vscode.workspace.workspaceFolders &&
+    vscode.workspace.workspaceFolders.length > 0;
+  const openLabel = hasFolderOpen ? "Reopen in WSL" : "Open in WSL";
 
   const selection = await vscode.window.showWarningMessage(
     "EECS 280: VS Code is running on Windows, but EECS 280 work should be done inside WSL. " +
-      "Reopen this folder in WSL to use the toolchain you've installed.",
-    reopenLabel,
+      (hasFolderOpen
+        ? "Reopen this folder in WSL to use the toolchain you've installed."
+        : "Open a WSL window to verify your setup and create your project."),
+    openLabel,
     dontShowLabel
   );
 
-  if (selection === reopenLabel) {
-    // remote-wsl.reopenInWSL is the command that powers the blue "><"
-    // button's "Reopen Folder in WSL" action. It reopens the current
-    // folder in a WSL-connected window.
-    await vscode.commands.executeCommand("remote-wsl.reopenInWSL");
+  if (selection === openLabel) {
+    await vscode.commands.executeCommand("eecs280.reopenInWsl");
   } else if (selection === dontShowLabel) {
     await context.workspaceState.update(WSL_NOTIFICATION_DISMISSED_KEY, true);
   }
@@ -679,11 +681,23 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Register the "Reopen in WSL" command, used by both the WSL warning
   // notification action button and the status bar in the not-in-WSL state.
-  // We wrap the underlying remote-wsl.reopenInWSL command so we have a
-  // single, stable command id to bind to the status bar.
+  //
+  // When a folder is open, reopen it in WSL. When no folder is open (the
+  // common first-install case where the student hasn't created a project yet),
+  // open a new WSL-connected window instead — remote-wsl.reopenInWSL requires
+  // a folder and silently fails without one.
   const reopenInWslCommand = vscode.commands.registerCommand(
     "eecs280.reopenInWsl",
-    () => vscode.commands.executeCommand("remote-wsl.reopenInWSL")
+    () => {
+      const hasFolderOpen =
+        vscode.workspace.workspaceFolders &&
+        vscode.workspace.workspaceFolders.length > 0;
+      if (hasFolderOpen) {
+        vscode.commands.executeCommand("remote-wsl.reopenInWSL");
+      } else {
+        vscode.commands.executeCommand("remote-wsl.newWindow");
+      }
+    }
   );
   context.subscriptions.push(reopenInWslCommand);
 
@@ -775,7 +789,13 @@ export function activate(context: vscode.ExtensionContext): void {
       );
     }
 
-    context.globalState.update(LAST_VERIFY_VERSION_KEY, currentVersion);
+    // Don't mark this version as seen on Windows-without-WSL. The student
+    // hasn't actually run verification yet — they need to open a WSL window
+    // first. Leaving globalState unset means the auto-run terminal fires
+    // correctly when the extension activates inside that WSL window.
+    if (detectPlatform() !== "windows") {
+      context.globalState.update(LAST_VERIFY_VERSION_KEY, currentVersion);
+    }
   }
 
   // Kick off the silent background check that drives the status bar.

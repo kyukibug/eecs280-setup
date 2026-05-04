@@ -70,7 +70,7 @@ Two ways the verify script gets run:
 
 `detectPlatform()` returns `"macos" | "wsl" | "linux" | "windows"`. WSL is distinguished from native Linux by reading `/proc/version` for `microsoft|wsl`. `"windows"` means VS Code is running native on Windows with no WSL connection — verify scripts cannot run there.
 
-`isWindowsWithUnusedWsl()` is a separate, more specific check: VS Code is on Windows, *not* connected to WSL (`vscode.env.remoteName !== "wsl"`), but `wsl.exe -l -q` reports at least one installed distro. This is the silent-failure mode where the student installed everything in WSL but launched VS Code as a Windows app. We surface a "Reopen in WSL" notification + status bar warning instead of running the script.
+`isWindowsWithUnusedWsl()` is a separate, more specific check: VS Code is on Windows, *not* connected to WSL (`vscode.env.remoteName !== "wsl"`), but `wsl.exe -l -q` reports at least one installed distro. This is the silent-failure mode where the student installed everything in WSL but launched VS Code as a Windows app. We surface a notification + status bar warning instead of running the script. The `eecs280.reopenInWsl` command (and the notification button) are folder-aware: if a workspace folder is open it calls `remote-wsl.reopenInWSL`; if not (the common first-install case) it calls `remote-wsl.newWindow` — `reopenInWSL` silently fails without a folder.
 
 > Note: `wsl.exe -l -q` outputs UTF-16 LE — the code collects bytes and decodes explicitly. Don't switch to a default-encoding string read.
 
@@ -87,6 +87,8 @@ After the install resolves, `activate()` re-checks `getExtension` once more. If 
 ### Auto-run-on-update logic
 
 Activation runs verification when `lastVerifyVersion !== currentVersion`. The stored version is updated *after* launching the terminal so a crash during launch leaves the next activation able to retry. Bumping the version in `package.json` therefore re-triggers the visible verification for every existing student on their next VS Code restart.
+
+**Windows exception:** the `globalState` stamp is intentionally *not* written when `detectPlatform() === "windows"`. The verification is a no-op on the Windows side, so marking the version as seen would prevent the auto-run terminal from firing when the student opens a WSL window. Leaving globalState unset ensures the first activation inside WSL still sees `lastVerifyVersion !== currentVersion` and runs the terminal.
 
 ### Bundled scripts
 
